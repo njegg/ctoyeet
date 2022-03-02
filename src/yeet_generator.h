@@ -1,0 +1,1 @@
+char *generate(int n);
