@@ -31,7 +31,7 @@ char *generate(int n)
     return yeet;
 }
 
-int main(void)
+int main_test_generate(void)
 {
     int n = 0;
 
