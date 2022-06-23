@@ -30,6 +30,7 @@ search_chain_res *search_chain(hashmap *map, K key)
     node *cur = map->table[hash];
 
     if (!cur) { // not found
+        printf("empty table at hash %i\n", hash);
         return res;
     }
 
@@ -39,7 +40,7 @@ search_chain_res *search_chain(hashmap *map, K key)
     }
 
     while (cur->next) {
-        if (strcmp(cur->key, key) == 0) {
+        if (strcmp(cur->next->key, key) == 0) {
             res->prev = cur;
             res->res = cur->next;
             return res;
@@ -122,8 +123,11 @@ int hm_put(hashmap *map, K key, V val)
     int hash = place_in_table(map->table_size, key);
 
     node *new_node = (node*) malloc(sizeof(node));
-    new_node->key = key;
-    new_node->val = val;
+    new_node->key = (char*) malloc(sizeof(char) * 128);
+    new_node->val = (char*) malloc(sizeof(char) * 128);
+
+    strcpy(new_node->key, key);
+    strcpy(new_node->val, val);
 
     new_node->next = map->table[hash];
     map->table[hash] = new_node;

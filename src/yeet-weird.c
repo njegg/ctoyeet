@@ -40,7 +40,7 @@ int main(int argc, char **args)
 {
     if (argc > 3) {
         // TODO FIX
-        printf("You need to pass a file name as an argument\n");
+        printf("You need to pass a file name as an argumetn\n");
         return 1;
     }
 
@@ -55,7 +55,7 @@ int main(int argc, char **args)
     if (argc == 3) {
         write_file = args[2];
     } else {
-        write_file = "yeet_out.c";
+        write_file = "out.c";
     }
 
     fw = fopen(write_file, "w");
@@ -78,13 +78,52 @@ int main(int argc, char **args)
     // fill the map
     char c, prevc;
     char buf[64];
+    char buf2[64];
     char *yeet;
     char *key = (char*) malloc(sizeof(char) * strlen(buf));
-
     while ((c = fgetc(fr)) != EOF) {
-        if (!isspace(c)) {
+        // if it finds \", its 
+        if (c == '\\') {
+            char next = fgetc(fr);
+            char escaped[3] = {c, next, '\0'};
+            strcpy(key, escaped);
+
+            yeet = generate(map->size);   
+            int added = hm_put(map, key, yeet);
+
+            if (added) {
+                printf("ADDED entry: '%s' : '%s'\n", key, yeet);
+            } else {
+                printf("FAILED entry: '%s' : '%s'\n", key, yeet);
+            }
+
+        } else if (c == '\"' && prevc == '\\') {
+            printf("\nfound bad\n");
+        } else if (c == '\"') { // read the whole string
+            strcpy(buf, "\"");
+            fscanf(fr, "%[^\"]s", buf2);
+            strcat(buf, buf2);
+            strcat(buf, "\"");
+
+            printf("found string: '%s'\n", buf);
+
+            yeet = generate(map->size);
+
+            strcpy(key, buf);
+
+            int added = hm_put(map, key, yeet);
+            if (added) {
+                printf("ADDED entry: '%s' : '%s'\n", key, yeet);
+            } else {
+                printf("FAILED entry: '%s' : '%s'\n", key, yeet);
+            }
+
+            fgetc(fr);
+
+        } else if (!isspace(c)) {
             ungetc(c, fr);
-            fscanf(fr, "%s", buf);
+            fscanf(fr, "%[^\"\n\\ ]s", buf);
+            /* fscanf(fr, "%s", buf); */
 
             yeet = generate(map->size);   
             strcpy(key, buf);
@@ -96,6 +135,7 @@ int main(int argc, char **args)
                 printf("FAILED entry: '%s' : '%s'\n", key, yeet);
             }
         } 
+        prevc = c;
     }
 
     printf("\nMAP:\n");
@@ -111,10 +151,58 @@ int main(int argc, char **args)
     while ((c = fgetc(fr)) != EOF) {
         if (isspace(c)) {
             fprintf(fw , "%c", c);
+        } else if (c == '\\') {
+            char next = fgetc(fr);
+            char escaped[3] = {c, next, '\0'};
+            strcpy(buf, escaped);
+
+            yeet = hm_get(map, buf);
+            if (yeet == NULL) {
+                printf("Not in map: '%s'\n", buf);
+                free(yeet);
+                fclose(fr);
+                fclose(fw);
+                hm_destroy(map);
+                return 1;
+            }
+
+            strcat(yeet, " ");
+            fprintf(fw, "%s", yeet);
+        } else if (c == '\"') {
+            // found '\"'
+            strcpy(buf, "\"");
+            fscanf(fr, "%[^\"]s", buf2);
+            /* if (c != '\"') { */
+            /*     printf("Error while looking for other '\"'\nc='%c'\nbuffers:\n1: %s\n2: %s\n", c,buf, buf2); */
+            /*     return 1; */
+            /*     // TODO FREE and CLOSE */
+            /* } */
+            strcat(buf, buf2);
+            strcat(buf, "\"");
+            fgetc(fr); // \" at the end of string
+
+            yeet = hm_get(map, buf);
+            if (yeet == NULL) {
+                printf("Not in map: '%s'\n", buf);
+                free(yeet);
+                fclose(fr);
+                fclose(fw);
+                hm_destroy(map);
+                return 1;
+            }
+
+            strcat(yeet, " ");
+            fprintf(fw, "%s", yeet);
         } else {
             ungetc(c, fr);
-            fscanf(fr, "%s", buf);
+            /* fscanf(fr, "[^\"\n ]%s", buf); */
+            fscanf(fr, "%[^\"\n\\ ]s", buf);
+            /* buf[(int)(strlen(buf))] = '\0'; */
 
+            /* yeet = generate(map->size); */   
+            /* char *key = (char*) malloc(sizeof(char) * strlen(buf)); */
+            /* strcpy(key, buf); */
+            
             yeet = hm_get(map, buf);
             if (yeet == NULL) {
                 printf("Not in map: %s\n", buf);

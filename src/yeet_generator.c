@@ -32,6 +32,7 @@ char *generate(int n)
 }
 
 int main_test_generate(void)
+/* int main(void) */
 {
     int n = 0;
 
@@ -40,6 +41,16 @@ int main_test_generate(void)
         scanf("%i", &n);
         char *yeet = generate(n);
         printf("generated yeet for %i = %s\n\n", n, yeet);
+    }
+
+    return 0;
+}
+
+int main_test_n_generate(void)
+// int main()
+{
+    for (int i = 0; i < 20; i++) {
+        printf("%s\n", generate(i));
     }
 
     return 0;
