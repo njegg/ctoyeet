@@ -55,7 +55,7 @@ int main(int argc, char **args)
     if (argc == 3) {
         write_file = args[2];
     } else {
-        write_file = "yeet_out.c";
+        write_file = "out.c";
     }
 
     fw = fopen(write_file, "w");
@@ -73,18 +73,40 @@ int main(int argc, char **args)
 
     fseek(fr, -1, SEEK_CUR);
 
-    hashmap *map = hm_create_size(2);
+    hashmap *map = hm_create_size(101);
 
     // fill the map
     char c, prevc;
     char buf[64];
+    char buf2[64];
     char *yeet;
     char *key = (char*) malloc(sizeof(char) * strlen(buf));
 
     while ((c = fgetc(fr)) != EOF) {
-        if (!isspace(c)) {
+        if (c == '\"') { // read the whole string
+            strcpy(buf, "\"");
+
+            fscanf(fr, "%[^\"]s", buf2);
+            strcat(buf, buf2);
+            strcat(buf, "\"");
+
+            printf("found string: '%s'\n", buf);
+
+            yeet = generate(map->size);
+
+            strcpy(key, buf);
+
+            int added = hm_put(map, key, yeet);
+            if (added) {
+                printf("ADDED entry: '%s' : '%s'\n", key, yeet);
+            } else {
+                printf("FAILED entry: '%s' : '%s'\n", key, yeet);
+            }
+
+            fgetc(fr);
+        } else if (!isspace(c)) {
             ungetc(c, fr);
-            fscanf(fr, "%s", buf);
+            fscanf(fr, "%[^\"\n ]s", buf);
 
             yeet = generate(map->size);   
             strcpy(key, buf);
@@ -109,11 +131,31 @@ int main(int argc, char **args)
     fprintf(fw, "\n");
 
     while ((c = fgetc(fr)) != EOF) {
-        if (isspace(c)) {
+        if (c == '\"') {
+            // found '\"'
+            strcpy(buf, "\"");
+            fscanf(fr, "%[^\"]s", buf2);
+            strcat(buf, buf2);
+            strcat(buf, "\"");
+            fgetc(fr); // \" at the end of string
+
+            yeet = hm_get(map, buf);
+            if (yeet == NULL) {
+                printf("Not in map: '%s'\n", buf);
+                free(yeet);
+                fclose(fr);
+                fclose(fw);
+                hm_destroy(map);
+                return 1;
+            }
+
+            strcat(yeet, " ");
+            fprintf(fw, "%s", yeet);
+        } else if (isspace(c)) {
             fprintf(fw , "%c", c);
         } else {
             ungetc(c, fr);
-            fscanf(fr, "%s", buf);
+            fscanf(fr, "%[^\"\n ]s", buf);
 
             yeet = hm_get(map, buf);
             if (yeet == NULL) {
@@ -129,7 +171,6 @@ int main(int argc, char **args)
             fprintf(fw, "%s", yeet);
         } 
     }
-
 
     if (yeet) free(yeet);
 

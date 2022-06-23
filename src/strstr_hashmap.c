@@ -30,7 +30,6 @@ search_chain_res *search_chain(hashmap *map, K key)
     node *cur = map->table[hash];
 
     if (!cur) { // not found
-        printf("empty table at hash %i\n", hash);
         return res;
     }
 

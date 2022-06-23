@@ -1,18 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define YEeT }
 #define yEeT 0;
-#define yeeT 3);
-#define yEEt "print2  %i \n"
 #define yeEt "Hello, world!\n"
-#define YEet printf(
 #define yEet {
-#define yeet int
-#define YeeT return
+#define YEeT }
 #define YEEt ,
-#define YeEt );
+#define yeeT 3);
+#define YEet printf(
 #define Yeet main()
+#define yEEt "print2  %i \n"
+#define YeEt );
+#define YeeT return
+#define yeet int
 
 yeet  Yeet 
 yEet 
