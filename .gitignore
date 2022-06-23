@@ -54,3 +54,6 @@ dkms.conf
 pr*
 T*
 test*
+
+aoc
+.idea
