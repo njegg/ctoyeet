@@ -14,10 +14,4 @@
 #define YeeT return
 #define yeet int
 
-yeet  Yeet 
-yEet 
-    YEet yeEt YeEt 
-    YEet  yEEt YEEt  yeeT 
-    YeeT  yEeT 
-YEeT 
-
+yeet  Yeet yEet     YEet yeEt YeEt     YEet  yEEt YEEt  yeeT     YeeT  yEeT YEeT 

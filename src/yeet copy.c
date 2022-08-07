@@ -76,49 +76,57 @@ int main(int argc, char **args)
 
     hashmap *map = hm_create_size(101);
 
-    // Filling the map with strings from file
+    // fill the map
     char c, prevc;
-    int max_line_length = 512;
-    char *line = (char*) malloc(sizeof(char) * max_line_length);
+    char buf[64];
+    char buf2[64];
     char *yeet;
-    char *key = (char*) malloc(sizeof(char) * max_line_length);
-    char buf[512];
+    char *key = (char*) malloc(sizeof(char) * strlen(buf));
 
+    while ((c = fgetc(fr)) != EOF) {
+        if (isspace(c)) continue;
 
-    while (fgets(line, max_line_length, fr)) {
-        int line_length = strlen(line);
+        if (c == '\"') { // read the whole string
+            strcpy(buf, "\"");
 
-        char *sp = line; // string pointer
-        while (*sp != '\0' &&  *sp!= EOF && *sp != '\n') {
-            if (isspace(*sp)) {
-                sp++;
-                continue;
-            }
+            fscanf(fr, "%[^\"]s", buf2);
+            strcat(buf, buf2);
+            strcat(buf, "\"");
 
-            if (*sp == '\"') {
-                strcpy(key, "\"");
-                sscanf(sp+1, "%[^\"]s", key+1);
-                strcat(key, "\"");
-            } else {
-                sscanf(sp, "%[^\n\" ]s", key); // TODO CHECK
-            }
+            printf("found string: '%s'\n", buf);
 
-            sp += strlen(key);
-            
             yeet = generate(map->size);
-            strcpy(buf, key);
-            int added = hm_put(map, buf, yeet);
 
-            printf("%s: '%s' : '%s'\n", added ? "ADDED" : "FAILED", key, yeet);
-            printf("+%li, sp -> %c\n", strlen(key), *sp);
-        }
+            strcpy(key, buf);
 
-        printf("\n");
+            int added = hm_put(map, key, yeet);
+            if (added) {
+                printf("ADDED entry: '%s' : '%s'\n", key, yeet);
+            } else {
+                printf("FAILED entry: '%s' : '%s'\n", key, yeet);
+            }
+
+            fgetc(fr);
+        } else {
+            ungetc(c, fr);
+            fscanf(fr, "%[^\"\n ]s", buf);
+
+            yeet = generate(map->size);   
+            strcpy(key, buf);
+            
+            int added = hm_put(map, key, yeet);
+            if (added) {
+                printf("ADDED entry: '%s' : '%s'\n", key, yeet);
+            } else {
+                printf("FAILED entry: '%s' : '%s'\n", key, yeet);
+            }
+        } 
+
+        free(yeet);
     }
 
     printf("\nMAP:\n");
     hm_print(map);
-    printf("\n");
 
     add_defines(fw, map);
 
@@ -127,29 +135,17 @@ int main(int argc, char **args)
     skip_to_code(fr);
     fprintf(fw, "\n");
 
-    while (fgets(line, max_line_length, fr)) {
-        int line_length = strlen(line);
+    while ((c = fgetc(fr)) != EOF) {
+        if (c == '\"') {
+            // found '\"'
+            strcpy(buf, "\"");
+            fscanf(fr, "%[^\"]s", buf2);
+            strcat(buf, buf2);
+            strcat(buf, "\"");
+            fgetc(fr); // \" at the end of string
 
-        char *sp = line; // string pointer
-        while (*sp != '\0' &&  *sp!= EOF && *sp != '\n') {
-            if (isspace(*sp)) {
-                fprintf(fw, "%c", *sp);
-                sp++;
-                continue;
-            }
-
-            if (*sp == '\"') {
-                strcpy(key, "\"");
-                sscanf(sp+1, "%[^\"]s", key+1);
-                strcat(key, "\"");
-            } else {
-                sscanf(sp, "%[^\n\" ]s", key); // TODO CHECK
-            }
-
-            sp += strlen(key);
-            
-            yeet = hm_get(map, key);
-            if (!yeet) {
+            yeet = hm_get(map, buf);
+            if (yeet == NULL) {
                 printf("Not in map: '%s'\n", buf);
                 free(yeet);
                 fclose(fr);
@@ -160,13 +156,31 @@ int main(int argc, char **args)
 
             strcat(yeet, " ");
             fprintf(fw, "%s", yeet);
-        }
+        } else if (isspace(c)) {
+            fprintf(fw , "%c", c);
+        } else {
+            ungetc(c, fr);
+            fscanf(fr, "%[^\"\n ]s", buf);
+
+            yeet = hm_get(map, buf);
+            if (yeet == NULL) {
+                printf("Not in map: %s\n", buf);
+                free(yeet);
+                fclose(fr);
+                fclose(fw);
+                hm_destroy(map);
+                return 1;
+            }
+
+            strcat(yeet, " ");
+            fprintf(fw, "%s", yeet);
+        } 
+
+        free(yeet);
     }
 
     if (yeet) free(yeet);
     hm_destroy(map);
-
-    if (line) free(line);
     
     fclose(fr);
     fclose(fw);

@@ -28,4 +28,3 @@ int hm_remove(hashmap *map, K key);
 int hm_replace(hashmap *map, K key, V new_val);
 V hm_get(hashmap *map, K key);
 unsigned long place_in_table(size_t table_size, K key);
-
