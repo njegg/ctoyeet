@@ -3,11 +3,11 @@
 
 int main()
 {
-    char c = '\"';
+    // char s[3] = "\"";
 
     if ('\"' == '\'') {};
 
-    printf("Hello yeet, \" \"\"\" asd\"asd\"\" \n");
+    printf("Hello yeet, \" \"\"\" asd\"asd\"\"");
 
     /* epik   multiline comment 
     

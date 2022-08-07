@@ -1,35 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define YeET "Hello yeet, \" \"\"\" asd\"asd\"\" \n"
-#define yEeT '\'')
-#define yeEt c
-#define yeeeT 0;
-#define YEEt if
-#define YEeT {};
+#define yEEt '\'')
+#define yeET 0;
+#define YEet if
+#define YEEt {};
 #define yEet {
-#define YeeeT }
-#define yEEt '\"';
-#define YeeT ==
-#define yeET printf(
-#define yeeT ('\"'
-#define YEet char
-#define YeEt =
+#define YeET }
+#define YeEt ==
+#define YeeT "Hello yeet, \" \"\"\" asd\"asd\"\""
+#define yeeT printf(
+#define yeEt ('\"'
 #define Yeet main()
-#define yEET );
-#define YEET return
+#define yEeT );
+#define YEeT return
 #define yeet int
 
 yeet  Yeet 
 yEet 
-    YEet  yeEt  YeEt  yEEt 
+    
+    YEet  yeEt  YeEt  yEEt  YEEt 
 
-    YEEt  yeeT  YeeT  yEeT  YEeT 
-
-    yeET YeET yEET 
+    yeeT YeeT yEeT 
 
     
 
-    YEET  yeeeT 
-YeeeT 
+    YEeT  yeET 
+YeET 
 

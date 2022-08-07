@@ -7,30 +7,24 @@
 #include <errno.h>
 #include <string.h>
 
-/*
- * TODO:
- *
- * errno everywhere
- * 
- * dont forget to add space when writing
- *
- * comments
- * multiline commnets (and mid-line comment)
- *
- *
- * How it works:
- *      1. skip includes and write them to file
- *      2. from there go through code and fill the map
- *           - map = [code_string : yeet_string]
- *      3. after filling the map, contiue writing and write defines
- *      4. read the original file after the includes part the same way
- *         like when filling the map, but now after reading a part of code
- *         find that part in map and write the yeet val from map in the new file.
- * */
-
 #define MAX_LINE 256
 #define GO_TO_NEW_LINE 1
 #define FIND_END_OF_COMMENT 2
+
+/*
+ * TODO:
+ *
+ * more errno and checks
+ * free stuff
+ * 
+ * How it works:
+ *      1. go through includes and write them to file
+ *      2. from there go through code and fill the map
+ *           - map = [code_string : yeet_string]
+ *      3. after filling the map, contiue writing and write defines - #define KEY VAL
+ *      4. read the original file after the includes part the same way, read a part of code
+ *         find that part in map and write the yeet val from map in the new file.
+ * */
 
 int DEBUG_INFO = 1;
 
@@ -101,9 +95,8 @@ int main(int argc, char **args)
             }
             
             int extract_status = extract_key_from_line(&cp, key);
-            if (extract_status == GO_TO_NEW_LINE) {
-                break;
-            }
+            if (extract_status == GO_TO_NEW_LINE) break;
+            // TODO this is copy paste, can go in seperate function
             if (extract_status == FIND_END_OF_COMMENT) {
                 // check line
                 char *end_of_comment;
@@ -119,6 +112,7 @@ int main(int argc, char **args)
                     
                     if (end_of_comment) {
                         cp = end_of_comment + 2; // continue after */
+                        // TODO use break
                         found_end = 1;
                     }
 
@@ -150,6 +144,11 @@ int main(int argc, char **args)
         printf("\n");
     }
 
+    char *error9 = "\"\\\"\"";
+    char *from_map = hm_get(map, error9);
+    printf("get: %s\n", from_map);
+    char buf[MAX_LINE];
+
     add_defines(fw, map);
 
     // write the code using the map
@@ -170,6 +169,8 @@ int main(int argc, char **args)
 
             int extract_status = extract_key_from_line(&cp, key);
             if (extract_status == GO_TO_NEW_LINE) break;
+            
+            // TODO this is copy paste, can go in seperate function
             if (extract_status == FIND_END_OF_COMMENT) {
                 // check line
                 char *end_of_comment;
@@ -185,6 +186,7 @@ int main(int argc, char **args)
                     
                     if (end_of_comment) {
                         cp = end_of_comment + 2; // continue after */
+                        // TODO use break
                         found_end = 1;
                     }
 
@@ -199,9 +201,14 @@ int main(int argc, char **args)
 
                 continue;
             }
+
+            printf("READ: %s\n", key);
+
             yeet = hm_get(map, key);
+
             if (!yeet) {
                 printf("Not in map: '%s'\n", key);
+                printf("line : %s\n", line);
                 free(yeet);
                 fclose(fr);
                 fclose(fw);
@@ -233,7 +240,8 @@ int main(int argc, char **args)
 int extract_key_from_line(char **line_pointer_pointer, char *key) {
     char *cp = *line_pointer_pointer;
 
-    if (*cp == '/') {
+    // TODO change to if
+    if (*cp == '/') {                           // maybe commnet 
         switch (*(cp + 1))
         {
             case '/': return GO_TO_NEW_LINE;
@@ -244,8 +252,6 @@ int extract_key_from_line(char **line_pointer_pointer, char *key) {
     }
 
     char buf[MAX_LINE];
-    int done = 0;
-
     strcpy(key, "");
 
     if (*cp == '\"') {                          // string
@@ -255,10 +261,16 @@ int extract_key_from_line(char **line_pointer_pointer, char *key) {
         cp += strlen(key);
 
         while (*(cp - 2) == '\\') {             // ignore all escaped \"
-            sscanf(cp, "%[^\"]s", buf);
-            strcat(key, buf);
-            strcat(key, "\"");
-            cp += strlen(buf) + 1;
+            if (*cp == '\"') {
+                strcat(key, "\"");
+                cp++;
+                continue;
+            } else {
+                sscanf(cp, "%[^\"]s", buf);
+                strcat(key, buf);
+                strcat(key, "\"");
+                cp += strlen(buf) + 1;
+            }
         }
     } else {                                    // not a string
         sscanf(cp, "%[^\n\" ]s", key);
@@ -266,9 +278,10 @@ int extract_key_from_line(char **line_pointer_pointer, char *key) {
 
         if (*cp == '\"' && *(cp - 1) == '\\') { // \" but not in a string
             strcat(key, "\"");
-            sscanf(cp + 1, "%[^\"\n ]s", buf);
+            cp++;
+            sscanf(cp, "%[^\"\n ]s", buf);
             strcat(key, buf);
-            cp += strlen(buf) + 1;
+            cp += strlen(buf);
         }
     }
 
@@ -319,7 +332,5 @@ void add_defines(FILE *f, hashmap *map)
             fprintf(f, "#define %s %s\n", cur->val, cur->key);      
             cur = cur->next;
         } 
-        /* fprintf(f, "\n"); */
     }
 }
-
