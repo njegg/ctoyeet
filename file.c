@@ -3,8 +3,16 @@
 
 int main()
 {
-    printf("Hello, world!\n");
-    printf("print2  %i \n", 3);
+    char c = '\"';
+
+    if ('\"' == '\'') {};
+
+    printf("Hello yeet, \" \"\"\" asd\"asd\"\" \n");
+
+    /* epik   multiline comment 
+    
+    */
+
     return 0;
 }
 

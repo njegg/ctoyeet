@@ -1,26 +1,4 @@
-gcc src/strstr_hashmap.c src/yeet_generator.c  src/yeet.c -o yeet
-./yeet file.c
-int +-1056970284
-main() +-1056970277
+Compiling yeet.c... ✔
 
-{ +-1056970286
+$ ./yeet.c file.c
 
-printf( +-1056970276
-printf( +-382645472
-world!\n +-1056970260
-world!\n +-382645472
-
-printf( +-1056970276
-printf( +-382645472
-%i +-1056970265
-\n +-1056970262
-\n +-382645472
-3); +-1056970256
-
-return +-1056970277
-0; +-1056970274
-
-} +-1056970286
-
-
-gcc out.c

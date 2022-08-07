@@ -9,34 +9,32 @@
 
 /*
  * TODO:
- * in a while where reading a file
- * add else if that checks if c is []()#=,...
+ *
+ * errno everywhere
+ * 
  * dont forget to add space when writing
- * if its a '"' just leave it
  *
- * BUG: sometimes inserts ^E, its not generate(), but its in the map
- * look vefore inserting in map, maybe length etc
- *
- *
- * !! '\"' <- its gonna thing its the end of the string
  * comments
+ * multiline commnets (and mid-line comment)
  *
  *
  * How it works:
- * 1. skip includes and write them to file
- * 2. from there go through code and fill the map
- *      - map = [code_string : yeet_string]
- * 3. after filling the map, contiue writing and write defines
- * 4. read the original file after the includes part the same way
- *    like when filling the map, but now after reading a part of code
- *    find that part in map and write the val from map in the new file.
+ *      1. skip includes and write them to file
+ *      2. from there go through code and fill the map
+ *           - map = [code_string : yeet_string]
+ *      3. after filling the map, contiue writing and write defines
+ *      4. read the original file after the includes part the same way
+ *         like when filling the map, but now after reading a part of code
+ *         find that part in map and write the yeet val from map in the new file.
  * */
 
 #define MAX_LINE 256
+#define GO_TO_NEW_LINE 1
+#define FIND_END_OF_COMMENT 2
 
 int DEBUG_INFO = 1;
 
-void extract_key_from_line(char **, char *);
+int extract_key_from_line(char **, char *);
 int skip_to_code(FILE *);
 void add_defines(FILE *, hashmap *);
 int handle_includes_and_defines(FILE *, FILE *);
@@ -96,13 +94,45 @@ int main(int argc, char **args)
         int line_length = strlen(line);
 
         char *cp = line; // pointer to a char from a line
-        while (*cp != '\0' &&  *cp!= EOF && *cp != '\n') {
+        while (*cp != '\0' &&  *cp!= EOF) {
             if (isspace(*cp)) {
                 cp++;
                 continue;
             }
             
-            extract_key_from_line(&cp, key);
+            int extract_status = extract_key_from_line(&cp, key);
+            if (extract_status == GO_TO_NEW_LINE) {
+                break;
+            }
+            if (extract_status == FIND_END_OF_COMMENT) {
+                // check line
+                char *end_of_comment;
+                int line_cnt = 0;
+                int found_end = 0;
+                
+                // check in current line, if not found, check others
+                do {
+                    if (line_cnt) {
+                        cp = line;
+                    }
+                    end_of_comment = strstr(cp, "*/");
+                    
+                    if (end_of_comment) {
+                        cp = end_of_comment + 2; // continue after */
+                        found_end = 1;
+                    }
+
+                    line_cnt++;
+                } while (!found_end && fgets(line, MAX_LINE, fr));
+
+                if (!found_end) {
+                    printf("NOT FOUND COMMENT END\n");
+                    return 1;
+                    // TODO FREE
+                }
+
+                continue;
+            }
             
             yeet = generate(map->size);
             int added = hm_put(map, key, yeet);
@@ -131,15 +161,44 @@ int main(int argc, char **args)
         int line_length = strlen(line);
 
         char *cp = line; // string pointer
-        while (*cp != '\0' &&  *cp!= EOF && *cp != '\n') {
+        while (*cp != '\0' &&  *cp!= EOF) {
             if (isspace(*cp)) {
                 fprintf(fw, "%c", *cp);
                 cp++;
                 continue;
             }
 
-            extract_key_from_line(&cp, key);
-            
+            int extract_status = extract_key_from_line(&cp, key);
+            if (extract_status == GO_TO_NEW_LINE) break;
+            if (extract_status == FIND_END_OF_COMMENT) {
+                // check line
+                char *end_of_comment;
+                int line_cnt = 0;
+                int found_end = 0;
+                
+                // check in current line, if not found, check others
+                do {
+                    if (line_cnt) {
+                        cp = line;
+                    }
+                    end_of_comment = strstr(cp, "*/");
+                    
+                    if (end_of_comment) {
+                        cp = end_of_comment + 2; // continue after */
+                        found_end = 1;
+                    }
+
+                    line_cnt++;
+                } while (!found_end && fgets(line, MAX_LINE, fr));
+
+                if (!found_end) {
+                    printf("NOT FOUND COMMENT END\n");
+                    return 1;
+                    // TODO FREE
+                }
+
+                continue;
+            }
             yeet = hm_get(map, key);
             if (!yeet) {
                 printf("Not in map: '%s'\n", key);
@@ -171,22 +230,51 @@ int main(int argc, char **args)
  *  and store it in key
  *  move pointer to the next char <= this is why pointer to pointer is needed
  */
-void extract_key_from_line(char **line_pointer_pointer, char *key) {
+int extract_key_from_line(char **line_pointer_pointer, char *key) {
     char *cp = *line_pointer_pointer;
 
-    if (*cp == '\"') {
-        strcpy(key, "\"");
-        sscanf(cp+1, "%[^\"]s", key+1);
-        strcat(key, "\"");
-    } else {
-        sscanf(cp, "%[^\n\" ]s", key); // TODO CHECK
+    if (*cp == '/') {
+        switch (*(cp + 1))
+        {
+            case '/': return GO_TO_NEW_LINE;
+            case '*': return FIND_END_OF_COMMENT;
 
-        if (*cp == '\"') {
-            //                    
+            default: break;
         }
     }
-        
-    *line_pointer_pointer += strlen(key);
+
+    char buf[MAX_LINE];
+    int done = 0;
+
+    strcpy(key, "");
+
+    if (*cp == '\"') {                          // string
+        strcat(key, "\"");
+        sscanf(cp + 1, "%[^\"]s", key + 1);
+        strcat(key, "\"");
+        cp += strlen(key);
+
+        while (*(cp - 2) == '\\') {             // ignore all escaped \"
+            sscanf(cp, "%[^\"]s", buf);
+            strcat(key, buf);
+            strcat(key, "\"");
+            cp += strlen(buf) + 1;
+        }
+    } else {                                    // not a string
+        sscanf(cp, "%[^\n\" ]s", key);
+        cp += strlen(key);
+
+        if (*cp == '\"' && *(cp - 1) == '\\') { // \" but not in a string
+            strcat(key, "\"");
+            sscanf(cp + 1, "%[^\"\n ]s", buf);
+            strcat(key, buf);
+            cp += strlen(buf) + 1;
+        }
+    }
+
+    *line_pointer_pointer = cp;
+
+    return 0;
 }
 
 

@@ -1,8 +1,16 @@
 compile:
-	gcc src/strstr_hashmap.c src/yeet_generator.c  src/yeet.c -o yeet
+	@echo -n 'Compiling yeet.c... '
+	@gcc src/strstr_hashmap.c src/yeet_generator.c  src/yeet.c -o yeet
+	@echo ✔
 
-test:
-	gcc src/strstr_hashmap.c src/yeet_generator.c  src/yeet.c -o yeet
-	./yeet file.c
-	gcc out.c
-	./a.out
+test:compile
+	@echo
+
+	@echo "$$ ./yeet.c file.c\n"
+	@./yeet file.c
+
+	@echo -n "Compiling generated yeet file..."
+	@gcc out.c
+	@echo ✔
+	@echo "\n$$ ./a.out\n"
+	@./a.out
