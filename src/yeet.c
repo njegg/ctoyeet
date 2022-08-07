@@ -32,9 +32,14 @@
  *    find that part in map and write the val from map in the new file.
  * */
 
-int skip_to_code(FILE* f);
-void add_defines(FILE *f, hashmap *map);
-int handle_inclueds_and_defines(FILE* fr, FILE* fw);
+#define MAX_LINE 256
+
+int DEBUG_INFO = 1;
+
+void extract_key_from_line(char **, char *);
+int skip_to_code(FILE *);
+void add_defines(FILE *, hashmap *);
+int handle_includes_and_defines(FILE *, FILE *);
 
 int main(int argc, char **args)
 {
@@ -64,8 +69,14 @@ int main(int argc, char **args)
         printf("Cant open file: '%s' for writing\n", write_file);
         return 1;
     }
+
+    /*  TODO
+     *  code bellow in a function
+     *  so if there is an error the cleaning stuff is in one place
+     *  (after calling the function) 
+     */
     
-    handle_inclueds_and_defines(fr, fw);
+    handle_includes_and_defines(fr, fw);
 
     if (ftell(fr) == 0) {
         printf("File is empty\n");
@@ -77,48 +88,37 @@ int main(int argc, char **args)
     hashmap *map = hm_create_size(101);
 
     // Filling the map with strings from file
-    char c, prevc;
-    int max_line_length = 512;
-    char *line = (char*) malloc(sizeof(char) * max_line_length);
+    char *line = (char*) malloc(sizeof(char) * MAX_LINE);
+    char *key = (char*) malloc(sizeof(char) * MAX_LINE);
     char *yeet;
-    char *key = (char*) malloc(sizeof(char) * max_line_length);
-    char buf[512];
 
-
-    while (fgets(line, max_line_length, fr)) {
+    while (fgets(line, MAX_LINE, fr)) {
         int line_length = strlen(line);
 
-        char *sp = line; // string pointer
-        while (*sp != '\0' &&  *sp!= EOF && *sp != '\n') {
-            if (isspace(*sp)) {
-                sp++;
+        char *cp = line; // pointer to a char from a line
+        while (*cp != '\0' &&  *cp!= EOF && *cp != '\n') {
+            if (isspace(*cp)) {
+                cp++;
                 continue;
             }
-
-            if (*sp == '\"') {
-                strcpy(key, "\"");
-                sscanf(sp+1, "%[^\"]s", key+1);
-                strcat(key, "\"");
-            } else {
-                sscanf(sp, "%[^\n\" ]s", key); // TODO CHECK
-            }
-
-            sp += strlen(key);
+            
+            extract_key_from_line(&cp, key);
             
             yeet = generate(map->size);
-            strcpy(buf, key);
-            int added = hm_put(map, buf, yeet);
+            int added = hm_put(map, key, yeet);
 
-            printf("%s: '%s' : '%s'\n", added ? "ADDED" : "FAILED", key, yeet);
-            printf("+%li, sp -> %c\n", strlen(key), *sp);
+            if (DEBUG_INFO) {
+                printf("%s: '%s' : '%s'\n", added ? "ADDED" : "FAILED", key, yeet);
+                printf("+%li, cp -> %c\n", strlen(key), *cp);
+            }
         }
-
-        printf("\n");
     }
 
-    printf("\nMAP:\n");
-    hm_print(map);
-    printf("\n");
+    if (DEBUG_INFO) {
+        printf("\nMAP:\n");
+        hm_print(map);
+        printf("\n");
+    }
 
     add_defines(fw, map);
 
@@ -127,30 +127,22 @@ int main(int argc, char **args)
     skip_to_code(fr);
     fprintf(fw, "\n");
 
-    while (fgets(line, max_line_length, fr)) {
+    while (fgets(line, MAX_LINE, fr)) {
         int line_length = strlen(line);
 
-        char *sp = line; // string pointer
-        while (*sp != '\0' &&  *sp!= EOF && *sp != '\n') {
-            if (isspace(*sp)) {
-                fprintf(fw, "%c", *sp);
-                sp++;
+        char *cp = line; // string pointer
+        while (*cp != '\0' &&  *cp!= EOF && *cp != '\n') {
+            if (isspace(*cp)) {
+                fprintf(fw, "%c", *cp);
+                cp++;
                 continue;
             }
 
-            if (*sp == '\"') {
-                strcpy(key, "\"");
-                sscanf(sp+1, "%[^\"]s", key+1);
-                strcat(key, "\"");
-            } else {
-                sscanf(sp, "%[^\n\" ]s", key); // TODO CHECK
-            }
-
-            sp += strlen(key);
+            extract_key_from_line(&cp, key);
             
             yeet = hm_get(map, key);
             if (!yeet) {
-                printf("Not in map: '%s'\n", buf);
+                printf("Not in map: '%s'\n", key);
                 free(yeet);
                 fclose(fr);
                 fclose(fw);
@@ -173,18 +165,42 @@ int main(int argc, char **args)
     return 0;
 }
 
+/*
+ *  line_pointer_pointer points to the pointer that points a char in a string 
+ *  from there, find the part thats gonna be added to the map
+ *  and store it in key
+ *  move pointer to the next char <= this is why pointer to pointer is needed
+ */
+void extract_key_from_line(char **line_pointer_pointer, char *key) {
+    char *cp = *line_pointer_pointer;
 
-int handle_inclueds_and_defines(FILE* fr, FILE* fw)
+    if (*cp == '\"') {
+        strcpy(key, "\"");
+        sscanf(cp+1, "%[^\"]s", key+1);
+        strcat(key, "\"");
+    } else {
+        sscanf(cp, "%[^\n\" ]s", key); // TODO CHECK
+
+        if (*cp == '\"') {
+            //                    
+        }
+    }
+        
+    *line_pointer_pointer += strlen(key);
+}
+
+
+int handle_includes_and_defines(FILE* fr, FILE* fw)
 {
-    char buf[256];
+    char buf[MAX_LINE];
     while (1) {
         char c = fgetc(fr);
         if (c == EOF) {
             return 0;
         } else if (c == '#' || isspace(c)) {
-            ungetc(c, fr);          // go back
-            fgets(buf, 256, fr);    // read
-            fputs(buf, fw);         // write
+            ungetc(c, fr);               // go back
+            fgets(buf, MAX_LINE, fr);    // read
+            fputs(buf, fw);              // write
         } else {
             return 1;
         }
