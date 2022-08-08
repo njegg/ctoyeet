@@ -4,7 +4,7 @@
 
 ## What breaks it
 - using multiple files and headers
-- writing code between `#define`s
+- writing stuff above `#define`s
 - `' '*2;`
 - many more!
 
