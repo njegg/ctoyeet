@@ -159,3 +159,5 @@ Using this...
 #define YEeEeT 0)
 #define yeET while
 ```
+
+Inspired by: https://paste.myst.rs/yeet
