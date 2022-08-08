@@ -28,7 +28,10 @@
 
 int DEBUG_INFO = 1;
 
+int fill_map(hashmap *, char *, char *, char *, FILE *, FILE *);
+int write_to_file_from_map(hashmap *, char *, char *, char *, FILE *, FILE *);
 int extract_key_from_line(char **, char *);
+void find_end_of_comment(char **, char *, FILE *);
 int skip_to_code(FILE *);
 void add_defines(FILE *, hashmap *);
 int handle_includes_and_defines(FILE *, FILE *);
@@ -40,6 +43,8 @@ int main(int argc, char **args)
         printf("You need to pass a file name as an argument\n");
         return 1;
     }
+
+    // Opening files
 
     FILE *fr = fopen(args[1], "r");
     if (!fr) {
@@ -62,14 +67,8 @@ int main(int argc, char **args)
         return 1;
     }
 
-    /*  TODO
-     *  code bellow in a function
-     *  so if there is an error the cleaning stuff is in one place
-     *  (after calling the function) 
-     */
-    
     handle_includes_and_defines(fr, fw);
-
+    
     if (ftell(fr) == 0) {
         printf("File is empty\n");
         return 0;
@@ -77,13 +76,42 @@ int main(int argc, char **args)
 
     fseek(fr, -1, SEEK_CUR);
 
+    // Initializing stuff
+
     hashmap *map = hm_create_size(101);
 
-    // Filling the map with strings from file
-    char *line = (char*) malloc(sizeof(char) * MAX_LINE);
-    char *key = (char*) malloc(sizeof(char) * MAX_LINE);
-    char *yeet;
+    char *yeet;                                             // value for map
+    char *key = (char*) malloc(sizeof(char) * MAX_LINE);    // key for map
+    char *line = (char*) malloc(sizeof(char) * MAX_LINE);   // buffer for reading a file
 
+
+    int status = fill_map(map, line, yeet, key, fr, fw);
+    if (DEBUG_INFO) {
+        printf("\nMAP:\n");
+        hm_print(map);
+        printf("\n");
+    }
+
+    if (status == EXIT_SUCCESS) {
+        status = write_to_file_from_map(map, line, yeet, key, fr, fw);
+    }
+
+    // Memory cleanup
+
+    fclose(fr);
+    fclose(fw);
+
+    hm_destroy(map);
+
+    if (yeet) free(yeet);
+    if (line) free(line);
+    if (key)  free(key);
+    
+    return status;
+}
+
+int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw)
+{
     while (fgets(line, MAX_LINE, fr)) {
         int line_length = strlen(line);
 
@@ -94,40 +122,23 @@ int main(int argc, char **args)
                 continue;
             }
             
-            int extract_status = extract_key_from_line(&cp, key);
-            if (extract_status == GO_TO_NEW_LINE) break;
-            // TODO this is copy paste, can go in seperate function
-            if (extract_status == FIND_END_OF_COMMENT) {
-                // check line
-                char *end_of_comment;
-                int line_cnt = 0;
-                int found_end = 0;
-                
-                // check in current line, if not found, check others
-                do {
-                    if (line_cnt) {
-                        cp = line;
-                    }
-                    end_of_comment = strstr(cp, "*/");
-                    
-                    if (end_of_comment) {
-                        cp = end_of_comment + 2; // continue after */
-                        // TODO use break
-                        found_end = 1;
-                    }
+            int status = extract_key_from_line(&cp, key);
 
-                    line_cnt++;
-                } while (!found_end && fgets(line, MAX_LINE, fr));
+            if (status == GO_TO_NEW_LINE) {
+                break;
+            }
 
-                if (!found_end) {
+            if (status == FIND_END_OF_COMMENT) {
+                find_end_of_comment(&cp, line, fr);
+                if (!cp) {
                     printf("NOT FOUND COMMENT END\n");
-                    return 1;
-                    // TODO FREE
+                    printf("LINE: %s\n", line);
+                    return EXIT_FAILURE;
                 }
 
                 continue;
             }
-            
+
             yeet = generate(map->size);
             int added = hm_put(map, key, yeet);
 
@@ -138,22 +149,16 @@ int main(int argc, char **args)
         }
     }
 
-    if (DEBUG_INFO) {
-        printf("\nMAP:\n");
-        hm_print(map);
-        printf("\n");
-    }
+    return EXIT_SUCCESS;
+}
 
-    char *error9 = "\"\\\"\"";
-    char *from_map = hm_get(map, error9);
-    printf("get: %s\n", from_map);
-    char buf[MAX_LINE];
-
+int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw)
+{
     add_defines(fw, map);
 
-    // write the code using the map
     rewind(fr);
     skip_to_code(fr);
+
     fprintf(fw, "\n");
 
     while (fgets(line, MAX_LINE, fr)) {
@@ -167,53 +172,33 @@ int main(int argc, char **args)
                 continue;
             }
 
-            int extract_status = extract_key_from_line(&cp, key);
-            if (extract_status == GO_TO_NEW_LINE) break;
-            
-            // TODO this is copy paste, can go in seperate function
-            if (extract_status == FIND_END_OF_COMMENT) {
-                // check line
-                char *end_of_comment;
-                int line_cnt = 0;
-                int found_end = 0;
-                
-                // check in current line, if not found, check others
-                do {
-                    if (line_cnt) {
-                        cp = line;
-                    }
-                    end_of_comment = strstr(cp, "*/");
-                    
-                    if (end_of_comment) {
-                        cp = end_of_comment + 2; // continue after */
-                        // TODO use break
-                        found_end = 1;
-                    }
+            int status = extract_key_from_line(&cp, key);
 
-                    line_cnt++;
-                } while (!found_end && fgets(line, MAX_LINE, fr));
+            if (status == GO_TO_NEW_LINE) {
+                break;
+            }
 
-                if (!found_end) {
+            if (status == FIND_END_OF_COMMENT) {
+                find_end_of_comment(&cp, line, fr);
+                if (!cp) {
                     printf("NOT FOUND COMMENT END\n");
-                    return 1;
-                    // TODO FREE
+                    printf("LINE: %s\n", line);
+                    return EXIT_FAILURE;
                 }
 
                 continue;
             }
 
-            printf("READ: %s\n", key);
+            if (DEBUG_INFO) {
+                printf("READ: %s\n", key);
+            }
 
             yeet = hm_get(map, key);
 
             if (!yeet) {
                 printf("Not in map: '%s'\n", key);
                 printf("line : %s\n", line);
-                free(yeet);
-                fclose(fr);
-                fclose(fw);
-                hm_destroy(map);
-                return 1;
+                return EXIT_FAILURE;
             }
 
             strcat(yeet, " ");
@@ -221,14 +206,7 @@ int main(int argc, char **args)
         }
     }
 
-    if (yeet) free(yeet);
-    hm_destroy(map);
-
-    if (line) free(line);
-    
-    fclose(fr);
-    fclose(fw);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 /*
@@ -241,7 +219,7 @@ int extract_key_from_line(char **line_pointer_pointer, char *key) {
     char *cp = *line_pointer_pointer;
 
     // TODO change to if
-    if (*cp == '/') {                           // maybe commnet 
+    if (*cp == '/') {                           // maybe its a commnet 
         switch (*(cp + 1))
         {
             case '/': return GO_TO_NEW_LINE;
@@ -290,6 +268,34 @@ int extract_key_from_line(char **line_pointer_pointer, char *key) {
     return 0;
 }
 
+/*
+    Finds end of the multiline comment
+    starts search at a current passed line
+    if not there, reads the rest of the file 
+
+    Returns the pointer inside of the line
+*/
+void find_end_of_comment(char **cpp, char *line, FILE *fr)
+{
+    char *cp = *cpp;
+    int line_cnt = 0;
+
+    cp = strstr(line, "*/");
+    if (cp) {
+        *cpp = cp + 2;
+        return;
+    }
+    
+    while (fgets(line, MAX_LINE, fr)) {
+        cp = strstr(line, "*/");
+        if (cp) {
+            *cpp = cp + 2;
+            return;
+        }
+    }
+
+    *cpp = NULL;
+}
 
 int handle_includes_and_defines(FILE* fr, FILE* fw)
 {

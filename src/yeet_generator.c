@@ -4,6 +4,7 @@
 
 char *generate(int n)
 {
+    n++;
     int bit = 16;
     int yeet_size = 4;
     while (bit <= INT_MAX) {

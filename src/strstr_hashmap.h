@@ -1,8 +1,9 @@
 #include <stdio.h>
 
+#define NOKEY 1<<31
+
 typedef char * K;
 typedef char * V;
-#define NOKEY 1<<31
 
 typedef struct node
 {

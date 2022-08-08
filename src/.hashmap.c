@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "hashmap.h"
+#include ".hashmap.h"
 
 hashmap *hm_create();
 hashmap *hm_create_size(size_t table_size);
