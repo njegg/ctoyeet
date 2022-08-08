@@ -61,3 +61,6 @@ aoc
 
 .idea
 .vscode
+
+src/.*
+yeet
