@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "strstr_hashmap.h"
 
 int check_map_created(hashmap *map) {
@@ -17,9 +18,7 @@ int check_map_created(hashmap *map) {
 }
 
 /*
- * @brief Searches the map and returns the element whose key is matching the one provided
- * @param map pointer to a hashmap
- * @param key searches the map with key
+ * Searches the map and returns the element whose key is matching the one provided
  * @returns search_chain_res struct with pointer to target element and one behind him or NULL if not found
  */
 search_chain_res *search_chain(hashmap *map, K key)
@@ -94,6 +93,14 @@ int hm_print(hashmap *map)
     return 1;
 }
 
+char *rtrim(char *s)
+{
+    char* back = s + strlen(s);
+    while(isspace(*--back));
+    *(back+1) = '\0';
+    return s;
+}
+
 int hm_put(hashmap *map, K key, V val)
 {
     if (!check_map_created(map)) return 0;
@@ -136,7 +143,7 @@ V hm_get(hashmap *map, K key)
     V val = res->res->val;
 
     free(res);
-    return val;
+    return rtrim(val);
 }
 
 int hm_remove(hashmap *map, K key)

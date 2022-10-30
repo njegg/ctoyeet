@@ -41,10 +41,20 @@
 #define GO_TO_NEW_LINE 1
 #define FIND_END_OF_COMMENT 2
 
+/** Punctuation marks that can be #defined
+ * Some cant, for example '=' because equals '==' will be
+ * read as two seperate tokens and will be seperated
+ * -> compile error: 'a = = b' this is invalid */ 
+#define PUNCTS "(),;[]"
+
+#define SSCANF_NOT_STRING_FORMAT "%[^]\n\"()\[,; ]s"
+#define SSCANF_STRING_FORMAT "%[^\"]s"
+
 int DEBUG_INFO = 1;
 
+
 int fill_map(hashmap *, char *, char *, char *, FILE *, FILE *);
-int write_to_file_from_map(hashmap *, char *, char *, char *, FILE *, FILE *);
+int write_to_file_from_map(hashmap *, char *, char *, char *, FILE *, FILE *, FILE *);
 int extract_key_from_line(char **, char *);
 void find_end_of_comment(char **, char *, FILE *);
 int skip_to_code(FILE *);
@@ -96,7 +106,9 @@ int main(int argc, char **args)
         return EXIT_FAILURE;
     }
 
-    handle_includes_and_defines(fr, fw);
+    handle_includes_and_defines(fr, fw_h);
+    
+    fprintf(fw, "#include \"%s\"", write_file_h);
     
     if (ftell(fr) == 0) {
         printf("File is empty\n");
@@ -119,9 +131,10 @@ int main(int argc, char **args)
 
     int yeet_was_a_success = 
            fill_map(map, line, yeet, key, fr, fw)
-        && write_to_file_from_map(map, line, yeet, key, fr, fw);
+        && write_to_file_from_map(map, line, yeet, key, fr, fw, fw_h);
     
     if (yeet_was_a_success && DEBUG_INFO) hm_print(map);
+
 
     // Memory cleanup
     fclose(fr);
@@ -136,7 +149,7 @@ int main(int argc, char **args)
     
     return yeet_was_a_success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
+            
 int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw)
 {
     while (fgets(line, MAX_LINE, fr)) {
@@ -175,13 +188,13 @@ int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw
             }
         }
     }
-
+    
     return 1;
 }
 
-int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw)
+int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw, FILE *fw_h)
 {
-    add_defines(fw, map);
+    add_defines(fw_h, map); // Write #define's to the header file
 
     rewind(fr);
     skip_to_code(fr);
@@ -237,70 +250,76 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE
 }
 
 /*
- *  line_pointer_pointer points to the pointer that points a char in a string 
- *  from there, find the part thats gonna be added to the map
- *  and store it in key
- *  move pointer to the next char <= this is why pointer to pointer is needed
+ *  @brief Finds a substring starting from the pointer provided that is suitable
+ *  for a #define and moves pointer after the end of the found substring
+ *  @param line_start_p points to the character in line from where the key is
+ *  gonna be extracted.
+ *  @param key pointer to memory where the key is gonna be stored
  */
-int extract_key_from_line(char **line_pointer_pointer, char *key) {
-    char *cp = *line_pointer_pointer;
+int extract_key_from_line(char **line_start_p, char *key) {
+    char *cp = *line_start_p;
 
-    // TODO change to if
     if (*cp == '/') {                           // maybe its a commnet 
-        switch (*(cp + 1))
-        {
-            case '/': return GO_TO_NEW_LINE;
-            case '*': return FIND_END_OF_COMMENT;
-
-            default: break;
-        }
+        char next = *(cp + 1);
+        if (next == '/') return GO_TO_NEW_LINE;
+        if (next == '*') return FIND_END_OF_COMMENT;
     }
 
     char buf[MAX_LINE];
     strcpy(key, "");
 
-    if (*cp == '\"') {                          // string
+    if (strchr(PUNCTS, *cp)) {
+        char punct[2];
+        punct[0] = *cp;
+        punct[1] = '\0';
+        strcpy(key, punct);
+        cp++;
+    } else if (*cp == '\"') {
+        // String found
+
         strcat(key, "\"");
-        sscanf(cp + 1, "%[^\"]s", key + 1);
+        sscanf(cp + 1, SSCANF_STRING_FORMAT, key + 1);
         strcat(key, "\"");
         cp += strlen(key);
 
-        while (*(cp - 2) == '\\') {             // ignore all escaped \"
+        while (*(cp - 2) == '\\') { // ignore all escaped \"
             if (*cp == '\"') {
                 strcat(key, "\"");
                 cp++;
                 continue;
             } else {
-                sscanf(cp, "%[^\"]s", buf);
+                sscanf(cp, SSCANF_STRING_FORMAT, buf);
                 strcat(key, buf);
                 strcat(key, "\"");
                 cp += strlen(buf) + 1;
             }
         }
-    } else {                                    // not a string
-        sscanf(cp, "%[^\n\" ]s", key);
+    } else {
+        // Not a string
+
+        sscanf(cp, SSCANF_NOT_STRING_FORMAT, key);
         cp += strlen(key);
 
         if (*cp == '\"' && *(cp - 1) == '\\') { // \" but not in a string
             strcat(key, "\"");
             cp++;
-            sscanf(cp, "%[^\"\n ]s", buf);
+            sscanf(cp, SSCANF_NOT_STRING_FORMAT, buf);
             strcat(key, buf);
             cp += strlen(buf);
         }
     }
 
-    *line_pointer_pointer = cp;
+    *line_start_p = cp;
 
     return 0;
 }
 
 /*
     Finds end of the multiline comment
-    starts search at a current passed line
+    Starts search at a current passed line
     if not there, reads the rest of the file 
 
-    Returns the pointer inside of the line
+    TODO: wtf is cpp
 */
 void find_end_of_comment(char **cpp, char *line, FILE *fr)
 {
