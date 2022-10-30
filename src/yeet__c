@@ -53,63 +53,52 @@ int handle_includes_and_defines(FILE *, FILE *);
 
 int main(int argc, char **args)
 {
-    if (argc == 1) {
-        printf("Usage:\n$ yeet input.c [output.c]");
-        return EXIT_SUCCESS;
+    if (argc > 3) {
+        // TODO FIX
+        printf("You need to pass a file name as an argument\n");
+        return 1;
     }
 
-    char *write_file   = argc > 2 ? args[2] : "out.c";
+    // Opening files
+
+    FILE *fr, *fw, *fw_h;
+    fr = fopen(args[1], "r");
+    if (!fr) {
+        // TODO: ERRNO
+        printf("Cant open file: \"%s\", maybe it doesn't exist\n", args[1]);
+        return 1;
+    }
+
+    char *write_file;
+    if (argc == 3) {
+        write_file = args[2];
+    } else {
+        write_file = "out.c";
+    }
     int write_file_len = strlen(write_file);
-
-    if (write_file_len < 3 || write_file[write_file_len - 1] != 'c') {
-        printf("ERROR: Output file name must be a '.c' file\n");
-        return EXIT_FAILURE;
-    }
-
+    
     // Create a header file, name is the same as the output file but ends with h
     char write_file_h[write_file_len];
-    strncpy(write_file_h, write_file, write_file_len);
+    strcpy(write_file_h, write_file);
     write_file_h[write_file_len - 1] = 'h';
 
-
-    // Opening files, if one fails, dont continue, but close ones opened before
-    FILE *fr = NULL, *fw = NULL, *fw_h = NULL;
-    int fopen_errno = 0;
-
-    if (!(fr = fopen(args[1], "r"))) {
-        fopen_errno = errno;
-    }
-
-    if (!fopen_errno && !(fw = fopen(write_file, "w"))) {
-        fopen_errno = errno;
-    }
-
-    if (!fopen_errno && !(fw_h = fopen(write_file_h, "w"))) {
-        fopen_errno = errno;
-    }
-    
-    if (fopen_errno) {
-        printf("Error while opening files: %s\n", strerror(fopen_errno));
-        if (fr)   fclose(fr);
-        if (fw)   fclose(fw);
-        if (fw_h) fclose(fw_h);
-        return EXIT_FAILURE;
+    fw = fopen(write_file, "w");
+    if (!fw) {
+        printf("Cant open file: '%s' for writing\n", write_file);
+        return 1;
     }
 
     handle_includes_and_defines(fr, fw);
     
     if (ftell(fr) == 0) {
         printf("File is empty\n");
-        fclose(fr);
-        fclose(fw);
-        fclose(fw_h);
-        return EXIT_FAILURE;
+        return 0;
     }
 
     fseek(fr, -1, SEEK_CUR);
 
+    // Initializing stuff
 
-    // Initialization
     hashmap *map = hm_create(101);
 
     char *yeet = NULL;                                      // value for map
@@ -117,16 +106,21 @@ int main(int argc, char **args)
     char *line = (char*) malloc(sizeof(char) * MAX_LINE);   // buffer for reading a file
 
 
-    int yeet_was_a_success = 
-           fill_map(map, line, yeet, key, fr, fw)
-        && write_to_file_from_map(map, line, yeet, key, fr, fw);
-    
-    if (yeet_was_a_success && DEBUG_INFO) hm_print(map);
+    int status = fill_map(map, line, yeet, key, fr, fw);
+    if (DEBUG_INFO) {
+        printf("\nMAP:\n");
+        hm_print(map);
+        printf("\n");
+    }
+
+    if (status == EXIT_SUCCESS) {
+        status = write_to_file_from_map(map, line, yeet, key, fr, fw);
+    }
 
     // Memory cleanup
+
     fclose(fr);
     fclose(fw);
-    fclose(fw_h);
 
     hm_destroy(map);
 
@@ -134,7 +128,7 @@ int main(int argc, char **args)
     if (line) free(line);
     if (key)  free(key);
     
-    return yeet_was_a_success ? EXIT_SUCCESS : EXIT_FAILURE;
+    return status;
 }
 
 int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw)
@@ -160,7 +154,7 @@ int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw
                 if (!cp) {
                     printf("NOT FOUND COMMENT END\n");
                     printf("LINE: %s\n", line);
-                    return 0;
+                    return EXIT_FAILURE;
                 }
 
                 continue;
@@ -176,7 +170,7 @@ int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw
         }
     }
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw)
@@ -210,7 +204,7 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE
                 if (!cp) {
                     printf("NOT FOUND COMMENT END\n");
                     printf("LINE: %s\n", line);
-                    return 0;
+                    return EXIT_FAILURE;
                 }
 
                 continue;
@@ -223,9 +217,9 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE
             yeet = hm_get(map, key);
 
             if (!yeet) {
-                printf("NOT IN MAP: '%s'\n", key);
-                printf("LINE : %s\n", line);
-                return 0;
+                printf("Not in map: '%s'\n", key);
+                printf("line : %s\n", line);
+                return EXIT_FAILURE;
             }
 
             strcat(yeet, " ");
@@ -233,7 +227,7 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE
         }
     }
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 /*
