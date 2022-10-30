@@ -69,7 +69,7 @@ typedef struct hashmap
 } hashmap;
 
 hashmap *hm_create();
-hashmap *hm_create_size(size_t table_size);
+hashmap *hm_create(size_t table_size);
 void hm_destroy(hashmap *map);
 int hm_print(hashmap* map);
 
@@ -77,7 +77,7 @@ int hm_put(hashmap *map, K key, V val);
 int hm_remove(hashmap *map, K key);
 int hm_replace(hashmap *map, K key, V new_val);
 V hm_get(hashmap *map, K key);
-unsigned long place_in_table(size_t table_size, K key);
+unsigned long hash_table_index(size_t table_size, K key);
 
 
 // strstr_hashmap.c
@@ -96,7 +96,7 @@ search_chain_res *search_chain(hashmap *map, K key)
     res->prev = NULL;
     res->res = NULL;
 
-    int hash = place_in_table(map->table_size, key);
+    int hash = hash_table_index(map->table_size, key);
     node *cur = map->table[hash];
 
     if (!cur) { // not found
@@ -123,7 +123,7 @@ search_chain_res *search_chain(hashmap *map, K key)
 /*
  * borrowed from http://www.cse.yorku.ca/~oz/hash.html
  * */
-unsigned long place_in_table(size_t table_size, K key)
+unsigned long hash_table_index(size_t table_size, K key)
 {
         unsigned long hash = 5381;
         int c;
@@ -134,7 +134,7 @@ unsigned long place_in_table(size_t table_size, K key)
         return hash % table_size;
 }
 
-hashmap *hm_create_size(size_t table_size)
+hashmap *hm_create(size_t table_size)
 {
     hashmap *map = (hashmap*) malloc(sizeof(hashmap));
     map->table = (node**) malloc(sizeof(node*) * table_size);
@@ -152,7 +152,7 @@ int hm_print(hashmap *map)
 {
     if (!map)
     {
-        printf("Map may not be initialised. Use hm_create_size(size_t table_size).\n");
+        printf("Map may not be initialised. Use hm_create(size_t table_size).\n");
         return 0;
     }
 
@@ -178,7 +178,7 @@ int hm_put(hashmap *map, K key, V val)
 {
     if (!map)
     {
-        printf("Map may not be initialised. Use hm_create_size(size_t table_size).\n");
+        printf("Map may not be initialised. Use hm_create(size_t table_size).\n");
         return 0;
     }
 
@@ -189,7 +189,7 @@ int hm_put(hashmap *map, K key, V val)
         return 0;
     }
 
-    int hash = place_in_table(map->table_size, key);
+    int hash = hash_table_index(map->table_size, key);
 
     node *new_node = (node*) malloc(sizeof(node));
     new_node->key = (char*) malloc(sizeof(char) * 128);
@@ -209,7 +209,7 @@ int hm_put(hashmap *map, K key, V val)
 V hm_get(hashmap *map, K key)
 {
     if (!map) {
-        printf("Map may not be initialised. Use hm_create_size(size_t table_size).\n");
+        printf("Map may not be initialised. Use hm_create(size_t table_size).\n");
         return 0;
     }
     
@@ -228,7 +228,7 @@ V hm_get(hashmap *map, K key)
 int hm_remove(hashmap *map, K key)
 {
     if (!map) {
-        printf("Map may not be initialised. Use hm_create_size(size_t table_size).\n");
+        printf("Map may not be initialised. Use hm_create(size_t table_size).\n");
         return 0;
     }
 
@@ -240,7 +240,7 @@ int hm_remove(hashmap *map, K key)
 
     // remove root
     if (!res->prev) {
-        node **root = &map->table[place_in_table(map->table_size, key)];
+        node **root = &map->table[hash_table_index(map->table_size, key)];
         *root = (*root)->next;
         free(res->res);
     } else {
@@ -257,7 +257,7 @@ int hm_remove(hashmap *map, K key)
 int hm_replace(hashmap *map, K key, V new_val)
 {
     if (!map) {
-        printf("Map may not be initialised. Use hm_create_size(size_t table_size).\n");
+        printf("Map may not be initialised. Use hm_create(size_t table_size).\n");
         return 0;
     }
 
@@ -324,7 +324,7 @@ int main(int argc, char **args)
 
     // Initializing stuff
 
-    hashmap *map = hm_create_size(101);
+    hashmap *map = hm_create(101);
 
     char *yeet;                                             // value for map
     char *key = (char*) malloc(sizeof(char) * MAX_LINE);    // key for map

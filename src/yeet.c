@@ -1,8 +1,10 @@
 /*
  * TODO:
+ *  more errno and checks
+ *  free stuff
+ *  defines ?
+ *  better main
  *
- * more errno and checks
- * free stuff
  * 
  * How it works:
  *      1. go through includes and write them to file
@@ -16,11 +18,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
-#include "strstr_hashmap.h"
-#include "yeet_generator.h"
 #include <errno.h>
 #include <string.h>
+
+#include "strstr_hashmap.h"
+#include "yeet_generator.h"
 
 #define MAX_LINE 256
 #define GO_TO_NEW_LINE 1
@@ -78,7 +80,7 @@ int main(int argc, char **args)
 
     // Initializing stuff
 
-    hashmap *map = hm_create_size(101);
+    hashmap *map = hm_create(101);
 
     char *yeet;                                             // value for map
     char *key = (char*) malloc(sizeof(char) * MAX_LINE);    // key for map

@@ -1,6 +1,6 @@
-#include <stdio.h>
-
-#define NOKEY 1<<31
+/*
+ * Basic hashmap with string key and string value
+ */
 
 typedef char * K;
 typedef char * V;
@@ -14,18 +14,39 @@ typedef struct node
 
 typedef struct hashmap
 {
-    node **table; // array of pointers to nodes
+    node **table;
     size_t table_size;
     int size;
 } hashmap;
 
-hashmap *hm_create();
-hashmap *hm_create_size(size_t table_size);
-void hm_destroy(hashmap *map);
-int hm_print(hashmap* map);
+typedef struct search_chain_res
+{
+    node *prev;
+    node *res;
+} search_chain_res;
 
+
+/*
+ * Creates a hashmap
+ * Should be freed with hm_destroy(hashmap *)
+ */
+hashmap *hm_create(size_t table_size);
+
+/*
+ * Frees all elements (nodes) in the map and the map itself
+ */
+void hm_destroy(hashmap *map);
+
+
+// Basic operations
+
+int hm_print(hashmap* map);
 int hm_put(hashmap *map, K key, V val);
 int hm_remove(hashmap *map, K key);
 int hm_replace(hashmap *map, K key, V new_val);
 V hm_get(hashmap *map, K key);
-unsigned long place_in_table(size_t table_size, K key);
+
+/**
+ * String hash function borrowed from http://www.cse.yorku.ca/~oz/hash.html
+ */
+unsigned long hash_table_index(size_t table_size, K key);
