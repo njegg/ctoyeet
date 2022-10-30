@@ -1,3 +1,18 @@
+/*
+ * TODO:
+ *
+ * more errno and checks
+ * free stuff
+ * 
+ * How it works:
+ *      1. go through includes and write them to file
+ *      2. from there go through code and fill the map
+ *           - map = [code_string : yeet_string]
+ *      3. after filling the map, contiue writing and write defines - #define KEY VAL
+ *      4. read the original file, skip the #include #define part, read a part of code
+ *         find that part in map and write the yeet val from map in the new file.
+ * */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -10,21 +25,6 @@
 #define MAX_LINE 256
 #define GO_TO_NEW_LINE 1
 #define FIND_END_OF_COMMENT 2
-
-/*
- * TODO:
- *
- * more errno and checks
- * free stuff
- * 
- * How it works:
- *      1. go through includes and write them to file
- *      2. from there go through code and fill the map
- *           - map = [code_string : yeet_string]
- *      3. after filling the map, contiue writing and write defines - #define KEY VAL
- *      4. read the original file after the includes part the same way, read a part of code
- *         find that part in map and write the yeet val from map in the new file.
- * */
 
 int DEBUG_INFO = 1;
 
@@ -139,7 +139,7 @@ int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw
                 continue;
             }
 
-            yeet = generate(map->size);
+            yeet = generate_yeet(map->size);
             int added = hm_put(map, key, yeet);
 
             if (DEBUG_INFO) {

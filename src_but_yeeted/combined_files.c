@@ -13,11 +13,11 @@
 
 // yeet_generator.h
 
-char *generate(int n);
+char *generate_yeet(int n);
 
 // yeet_generator.c
 
-char *generate(int n)
+char *generate_yeet(int n)
 {
     n++;
     int bit = 16;
@@ -385,7 +385,7 @@ int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw
                 continue;
             }
 
-            yeet = generate(map->size);
+            yeet = generate_yeet(map->size);
             int added = hm_put(map, key, yeet);
 
             if (DEBUG_INFO) {

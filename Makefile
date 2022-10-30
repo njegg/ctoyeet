@@ -4,13 +4,11 @@ compile:
 	@echo ✔
 
 test:compile
-	@echo
+	cp yeet tests/yeet
+	tests/yeet tests/file.c
+	gcc out.c
+	./a.out
 
-	@echo "$$ ./yeet.c file.c\n"
-	@./yeet file.c
-
-	@echo -n "Compiling generated yeet file..."
-	@gcc out.c
-	@echo ✔
-	@echo "\n$$ ./a.out\n"
-	@./a.out
+clean:
+	@trash out.c
+	@trash a.out
