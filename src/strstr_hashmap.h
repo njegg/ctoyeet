@@ -21,19 +21,19 @@ typedef struct hashmap
 
 typedef struct search_chain_res
 {
-    node *prev;
-    node *res;
+    node *prev; //!< node that is behind searched node, if found
+    node *res;  //!< node that is being searched
 } search_chain_res;
 
 
-/*
- * Creates a hashmap
- * Should be freed with hm_destroy(hashmap *)
+/**
+ * @brief           Creates a hashmap
+ * @details         Should be freed with hm_destroy(hashmap *)
  */
 hashmap *hm_create(size_t table_size);
 
-/*
- * Frees all elements (nodes) in the map and the map itself
+/**
+ * @brief           Frees all elements (nodes) in the map and the map itself
  */
 void hm_destroy(hashmap *map);
 
@@ -47,6 +47,6 @@ int hm_replace(hashmap *map, K key, V new_val);
 V hm_get(hashmap *map, K key);
 
 /**
- * String hash function borrowed from http://www.cse.yorku.ca/~oz/hash.html
+ * @brief           String hash function borrowed from http://www.cse.yorku.ca/~oz/hash.html
  */
 unsigned long hash_table_index(size_t table_size, K key);

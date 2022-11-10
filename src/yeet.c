@@ -9,7 +9,7 @@
  * How it works:
  *      1. copy #include's and #define's to output file
  *      2. go through rest of the code and fill the map: [code_string : yeet_string]
- *      3. contiue writing to output and write defines from the map - #define KEY VAL
+ *      3. continue writing to output and write defines from the map - #define KEY VAL
  *      4. read a part of code from the input file, find that part in map and write
  *         the value from map in the new file.
  *
@@ -33,33 +33,33 @@
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "strstr_hashmap.h"
 #include "yeet_generator.h"
 
 #define MAX_LINE 256
-#define GO_TO_NEW_LINE 1
-#define FIND_END_OF_COMMENT 2
+#define SINGLE_LINE_COMMENT 1
+#define MULTILINE_COMMENT 2
 
 /** Punctuation marks that can be #defined
  * Some cant, for example '=' because equals '==' will be
- * read as two seperate tokens and will be seperated
- * -> compile error: 'a = = b' this is invalid */ 
+ * read as two separate tokens and will be seperated
+ *  => compile error: 'a = = b' is invalid */
 #define PUNCTS "(),;[]"
-
-#define SSCANF_NOT_STRING_FORMAT "%[^]\n\"()\[,; ]s"
+#define SSCANF_NON_STRING_FORMAT "%[^]\n\"()\[,; ]s"
 #define SSCANF_STRING_FORMAT "%[^\"]s"
 
-int DEBUG_INFO = 1;
+int DEBUG_INFO = 0;
 
-
-int fill_map(hashmap *, char *, char *, char *, FILE *, FILE *);
-int write_to_file_from_map(hashmap *, char *, char *, char *, FILE *, FILE *, FILE *);
-int extract_key_from_line(char **, char *);
+int fill_map(hashmap *map, char *line, char *yeet, char *token, FILE *fr);
+int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *token, FILE *fr, FILE *fw, FILE *fw_h);
+int extract_token_from_line(char **token_start, char *token);
 void find_end_of_comment(char **, char *, FILE *);
 int skip_to_code(FILE *);
 void add_defines(FILE *, hashmap *);
 int handle_includes_and_defines(FILE *, FILE *);
+void debug_info(const char *, ...);
 
 int main(int argc, char **args)
 {
@@ -69,7 +69,7 @@ int main(int argc, char **args)
     }
 
     char *write_file   = argc > 2 ? args[2] : "out.c";
-    int write_file_len = strlen(write_file);
+    size_t write_file_len = strlen(write_file);
 
     if (write_file_len < 3 || write_file[write_file_len - 1] != 'c') {
         printf("ERROR: Output file name must be a '.c' file\n");
@@ -125,15 +125,17 @@ int main(int argc, char **args)
     hashmap *map = hm_create(101);
 
     char *yeet = NULL;                                      // value for map
-    char *key = (char*) malloc(sizeof(char) * MAX_LINE);    // key for map
+    char *token = (char*) malloc(sizeof(char) * MAX_LINE);    // token for map
     char *line = (char*) malloc(sizeof(char) * MAX_LINE);   // buffer for reading a file
 
+    int fill_map_ok = fill_map(map, line, yeet, token, fr);
+    if (fill_map_ok && DEBUG_INFO) hm_print(map);
 
-    int yeet_was_a_success = 
-           fill_map(map, line, yeet, key, fr, fw)
-        && write_to_file_from_map(map, line, yeet, key, fr, fw, fw_h);
-    
-    if (yeet_was_a_success && DEBUG_INFO) hm_print(map);
+    int all_good =
+            fill_map_ok &&
+            write_to_file_from_map(map, line, yeet, token, fr, fw, fw_h);
+
+    if (!all_good) fprintf(stderr, "Something went wrong");
 
 
     // Memory cleanup
@@ -145,34 +147,44 @@ int main(int argc, char **args)
 
     if (yeet) free(yeet);
     if (line) free(line);
-    if (key)  free(key);
+    if (token)  free(token);
     
-    return yeet_was_a_success ? EXIT_SUCCESS : EXIT_FAILURE;
+    return all_good ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-            
-int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw)
+
+/**
+ * Reads the file line by line. From each line get the token,
+ * and add it to the map as a key, and as a value, add the value from the
+ * char * generate(int) function
+ * @param line  buffer
+ * @param yeet  some memory  the stuff that generate(int) gives
+ * @param token   some memory for the tokens from the line
+ * @param fr    source code file
+ * @return      1 = ok, 0 = not ok
+ */
+int fill_map(hashmap *map, char *line, char *yeet, char *token, FILE *fr)
 {
     while (fgets(line, MAX_LINE, fr)) {
-        int line_length = strlen(line);
-
         char *cp = line; // pointer to a char from a line
+
         while (*cp != '\0' &&  *cp!= EOF) {
             if (isspace(*cp)) {
                 cp++;
                 continue;
             }
             
-            int status = extract_key_from_line(&cp, key);
+            int status = extract_token_from_line(&cp, token);
 
-            if (status == GO_TO_NEW_LINE) {
+            if (status == SINGLE_LINE_COMMENT) { // found a comment or something
                 break;
             }
 
-            if (status == FIND_END_OF_COMMENT) {
+            if (status == MULTILINE_COMMENT) { // found start of multiline comment, search for end
                 find_end_of_comment(&cp, line, fr);
+
                 if (!cp) {
-                    printf("NOT FOUND COMMENT END\n");
-                    printf("LINE: %s\n", line);
+                    fprintf(stderr, "Not found comment end\n");
+                    fprintf(stderr, "Line: %s\n", line);
                     return 0;
                 }
 
@@ -180,19 +192,17 @@ int fill_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw
             }
 
             yeet = generate_yeet(map->size);
-            int added = hm_put(map, key, yeet);
+            int added = hm_put(map, token, yeet); // add a key and a unique string from generate(int)
 
-            if (DEBUG_INFO) {
-                printf("%s: '%s' : '%s'\n", added ? "ADDED" : "FAILED", key, yeet);
-                printf("+%li, cp -> %c\n", strlen(key), *cp);
-            }
+            debug_info("%s: '%s' : '%s'\n", added ? "ADDED" : "FAILED", token, yeet);
+            debug_info("+%li, cp -> %c\n", strlen(token), *cp);
         }
     }
     
     return 1;
 }
 
-int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE *fr, FILE *fw, FILE *fw_h)
+int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *token, FILE *fr, FILE *fw, FILE *fw_h)
 {
     add_defines(fw_h, map); // Write #define's to the header file
 
@@ -202,8 +212,6 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE
     fprintf(fw, "\n");
 
     while (fgets(line, MAX_LINE, fr)) {
-        int line_length = strlen(line);
-
         char *cp = line; // string pointer
         while (*cp != '\0' &&  *cp!= EOF) {
             if (isspace(*cp)) {
@@ -212,13 +220,13 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE
                 continue;
             }
 
-            int status = extract_key_from_line(&cp, key);
+            int status = extract_token_from_line(&cp, token);
 
-            if (status == GO_TO_NEW_LINE) {
+            if (status == SINGLE_LINE_COMMENT) {
                 break;
             }
 
-            if (status == FIND_END_OF_COMMENT) {
+            if (status == MULTILINE_COMMENT) {
                 find_end_of_comment(&cp, line, fr);
                 if (!cp) {
                     printf("NOT FOUND COMMENT END\n");
@@ -230,13 +238,13 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE
             }
 
             if (DEBUG_INFO) {
-                printf("READ: %s\n", key);
+                printf("READ: %s\n", token);
             }
 
-            yeet = hm_get(map, key);
+            yeet = hm_get(map, token);
 
             if (!yeet) {
-                printf("NOT IN MAP: '%s'\n", key);
+                printf("NOT IN MAP: '%s'\n", token);
                 printf("LINE : %s\n", line);
                 return 0;
             }
@@ -249,67 +257,68 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *key, FILE
     return 1;
 }
 
-/*
- *  @brief Finds a substring starting from the pointer provided that is suitable
- *  for a #define and moves pointer after the end of the found substring
- *  @param line_start_p points to the character in line from where the key is
- *  gonna be extracted.
- *  @param key pointer to memory where the key is gonna be stored
+/**
+ *  @brief              From the pointer \a token_start find the end of the token
+ *                      and copy it to \a token if it's not a comment or similar
+ *  @details            If its a comment
+ *  @param token_start  points to the character where the token starts
+ *  @param token        pointer to memory where the token is gonna be stored
+ *  @returns            1 for ok or 0 for not ok
  */
-int extract_key_from_line(char **line_start_p, char *key) {
-    char *cp = *line_start_p;
+int extract_token_from_line(char **token_start, char *token) {
+    char *cp = *token_start;
 
-    if (*cp == '/') {                           // maybe its a commnet 
+    if (*cp == '/') { // found comment
         char next = *(cp + 1);
-        if (next == '/') return GO_TO_NEW_LINE;
-        if (next == '*') return FIND_END_OF_COMMENT;
+        if (next == '/') return SINGLE_LINE_COMMENT;
+        if (next == '*') return MULTILINE_COMMENT;
     }
 
     char buf[MAX_LINE];
-    strcpy(key, "");
+    strcpy(token, "");
 
     if (strchr(PUNCTS, *cp)) {
         char punct[2];
         punct[0] = *cp;
         punct[1] = '\0';
-        strcpy(key, punct);
+        strcpy(token, punct);
         cp++;
     } else if (*cp == '\"') {
         // String found
 
-        strcat(key, "\"");
-        sscanf(cp + 1, SSCANF_STRING_FORMAT, key + 1);
-        strcat(key, "\"");
-        cp += strlen(key);
+        strcat(token, "\"");
+        sscanf(cp + 1, SSCANF_STRING_FORMAT, token + 1);
+        strcat(token, "\"");
+        cp += strlen(token);
 
         while (*(cp - 2) == '\\') { // ignore all escaped \"
             if (*cp == '\"') {
-                strcat(key, "\"");
+                strcat(token, "\"");
                 cp++;
                 continue;
             } else {
                 sscanf(cp, SSCANF_STRING_FORMAT, buf);
-                strcat(key, buf);
-                strcat(key, "\"");
+                strcat(token, buf);
+                strcat(token, "\"");
                 cp += strlen(buf) + 1;
             }
         }
     } else {
         // Not a string
 
-        sscanf(cp, SSCANF_NOT_STRING_FORMAT, key);
-        cp += strlen(key);
+        sscanf(cp, SSCANF_NON_STRING_FORMAT, token);
+        cp += strlen(token);
 
         if (*cp == '\"' && *(cp - 1) == '\\') { // \" but not in a string
-            strcat(key, "\"");
+            strcat(token, "\"");
             cp++;
-            sscanf(cp, SSCANF_NOT_STRING_FORMAT, buf);
-            strcat(key, buf);
+            sscanf(cp, SSCANF_NON_STRING_FORMAT, buf);
+            strcat(token, buf);
             cp += strlen(buf);
         }
     }
 
-    *line_start_p = cp;
+    *token_start = cp;
 
     return 0;
 }
@@ -323,10 +332,7 @@ int extract_key_from_line(char **line_start_p, char *key) {
 */
 void find_end_of_comment(char **cpp, char *line, FILE *fr)
 {
-    char *cp = *cpp;
-    int line_cnt = 0;
-
-    cp = strstr(line, "*/");
+    char *cp = strstr(line, "*/");
     if (cp) {
         *cpp = cp + 2;
         return;
@@ -385,4 +391,14 @@ void add_defines(FILE *f, hashmap *map)
             cur = cur->next;
         } 
     }
+}
+
+void debug_info(const char *format, ...)
+{
+    if (!DEBUG_INFO) return;
+    va_list arg;
+
+    va_start(arg, format);
+    vfprintf(stdout, format, arg);
+    va_end(arg);
 }

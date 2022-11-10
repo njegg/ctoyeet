@@ -36,17 +36,17 @@ char *generate_yeet(unsigned int n)
         yeet_size++;
     }
     
-    char *yeet = (char*) malloc(sizeof(char) * yeet_size);
-    
+    char *yeet = (char*) malloc(sizeof(char) * yeet_size + 1);
+    yeet[yeet_size] = '\0';
     
     // Fill the string
 
     int capital; // if least significant bit is 1 - uppercase, else lowercase
     for (int i = yeet_size - 1; i >= 0; i--) {
         capital = n % 2;
-        if      (i == 0)             yeet[i] = capital ? 'Y' : 'y'; // first  letter  'y'
-        else if (i == yeet_size - 1) yeet[i] = capital ? 'T' : 't'; // middle letters 'e'
-        else                         yeet[i] = capital ? 'E' : 'e'; // last   letter  't'
+        if      (i == 0)             yeet[i] = capital ? 'Y' : 'y'; // first  letter  y
+        else if (i == yeet_size - 1) yeet[i] = capital ? 'T' : 't'; // last   letter  t
+        else                         yeet[i] = capital ? 'E' : 'e'; // middle letters e
 
         n >>= 1; // get the next bit
     }
@@ -55,7 +55,7 @@ char *generate_yeet(unsigned int n)
 }
 
 int test(void)
-/* int main() */
+//int main()
 {
     char *yeet;
     for (int i = 0; i < 200; i++) {

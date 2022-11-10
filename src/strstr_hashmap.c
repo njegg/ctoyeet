@@ -17,9 +17,16 @@ int check_map_created(hashmap *map) {
     return 1;
 }
 
-/*
- * Searches the map and returns the element whose key is matching the one provided
- * @returns search_chain_res struct with pointer to target element and one behind him or NULL if not found
+/**
+ * @brief           Searches the map and returns the element whose key is matching the one provided
+ * @returns         Struct with pointer to target element and one behind him or NULL if not found:
+ * @code{.c}
+ * typedef struct search_chain_res
+ * {
+ *     node *prev;
+ *     node *res;
+ * } search_chain_res;
+ * @endcode
  */
 search_chain_res *search_chain(hashmap *map, K key)
 {
@@ -29,7 +36,7 @@ search_chain_res *search_chain(hashmap *map, K key)
     
     if (!check_map_created(map)) return 0;
 
-    int hash = hash_table_index(map->table_size, key);
+    size_t hash = hash_table_index(map->table_size, key);
     node *cur = map->table[hash];
 
     if (!cur) return res; // not found
@@ -54,9 +61,9 @@ search_chain_res *search_chain(hashmap *map, K key)
 unsigned long hash_table_index(size_t table_size, K key)
 {
         unsigned long hash = 5381;
-        int c;
+        unsigned char c;
 
-        while (c = *key++)
+        while ((c = *key++))
             hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
         return hash % table_size;
@@ -111,7 +118,7 @@ int hm_put(hashmap *map, K key, V val)
         return 0;
     }
 
-    int hash = hash_table_index(map->table_size, key);
+    size_t hash = hash_table_index(map->table_size, key);
 
     node *new_node = (node*) malloc(sizeof(node));
     new_node->key = (char*) malloc(sizeof(char) * 128);
