@@ -153,14 +153,11 @@ int main(int argc, char **args)
 }
 
 /**
+ * Fills the map with key = code_token, value = yeet_token
  * Reads the file line by line. From each line get the token,
  * and add it to the map as a key, and as a value, add the value from the
- * char * generate(int) function
- * @param line  buffer
- * @param yeet  some memory  the stuff that generate(int) gives
- * @param token   some memory for the tokens from the line
- * @param fr    source code file
- * @return      1 = ok, 0 = not ok
+ * generate(int) function
+ * 1 if ok; 0 if not ok
  */
 int fill_map(hashmap *map, char *line, char *yeet, char *token, FILE *fr)
 {
@@ -202,9 +199,16 @@ int fill_map(hashmap *map, char *line, char *yeet, char *token, FILE *fr)
     return 1;
 }
 
+/**
+ * Replaces source code tokens with corresponding 'yeet' tokens from the map
+ * Reads the source code file once again and for each token it gets the value
+ * from the map and writes that to the output file. Before that it adds defines
+ * to the header file
+ * 1 if ok; 0 if not ok
+ */
 int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *token, FILE *fr, FILE *fw, FILE *fw_h)
 {
-    add_defines(fw_h, map); // Write #define's to the header file
+    add_defines(fw_h, map); // Write #define * * to the header file
 
     rewind(fr);
     skip_to_code(fr);
@@ -258,12 +262,11 @@ int write_to_file_from_map(hashmap *map, char *line, char *yeet, char *token, FI
 }
 
 /**
- *  @brief              From the pointer \a token_start find the end of the token
- *                      and copy it to \a token if it's not a comment or similar
- *  @details            If its a comment
- *  @param token_start  points to the character where the token starts
- *  @param token        pointer to memory where the token is gonna be stored
- *  @returns            1 for ok or 0 for not ok
+ * From the pointer token_start find the end of the token
+ * and copy it to token if it's not a comment or similar.
+ * token_start - points to the character where the token starts.
+ * token - pointer to memory where the token is gonna be stored.
+ * 1 for ok or 0 for not ok
  */
 int extract_token_from_line(char **token_start, char *token) {
     char *cp = *token_start;
@@ -278,6 +281,8 @@ int extract_token_from_line(char **token_start, char *token) {
     strcpy(token, "");
 
     if (strchr(PUNCTS, *cp)) {
+        // Punctuation mark found
+
         char punct[2];
         punct[0] = *cp;
         punct[1] = '\0';
@@ -287,11 +292,11 @@ int extract_token_from_line(char **token_start, char *token) {
         // String found
 
         strcat(token, "\"");
-        sscanf(cp + 1, SSCANF_STRING_FORMAT, token + 1);
+        sscanf(cp + 1, SSCANF_STRING_FORMAT, token + 1); // Scan till next '"' - could be escaped
         strcat(token, "\"");
         cp += strlen(token);
 
-        while (*(cp - 2) == '\\') { // ignore all escaped \"
+        while (*(cp - 2) == '\\') { // ignore all escaped \", find real end of the string
             if (*cp == '\"') {
                 strcat(token, "\"");
                 cp++;
@@ -309,7 +314,7 @@ int extract_token_from_line(char **token_start, char *token) {
         sscanf(cp, SSCANF_NON_STRING_FORMAT, token);
         cp += strlen(token);
 
-        if (*cp == '\"' && *(cp - 1) == '\\') { // \" but not in a string
+        if (*cp == '\"' && *(cp - 1) == '\\') { // char c = '\"';
             strcat(token, "\"");
             cp++;
             sscanf(cp, SSCANF_NON_STRING_FORMAT, buf);
@@ -318,17 +323,18 @@ int extract_token_from_line(char **token_start, char *token) {
         }
     }
 
-    *token_start = cp;
+    *token_start = cp; // Update pointer
 
     return 0;
 }
 
-/*
-    Finds end of the multiline comment
-    Starts search at a current passed line
-    if not there, reads the rest of the file 
-
-    TODO: wtf is cpp
+/**
+ * Finds end of the multiline comment
+ * Starts search at a current passed line
+ * If not there, reads the rest of the file.
+ * cpp - pointer to a character inside line.
+ * line - buffer.
+ * fr - source code file.
 */
 void find_end_of_comment(char **cpp, char *line, FILE *fr)
 {
@@ -349,6 +355,11 @@ void find_end_of_comment(char **cpp, char *line, FILE *fr)
     *cpp = NULL;
 }
 
+/**
+ * Reads #include and #define lines from source file
+ * and writes them to output file.
+ * 1 if ok. 0 if not ok
+ */
 int handle_includes_and_defines(FILE* fr, FILE* fw)
 {
     char buf[MAX_LINE];
@@ -357,8 +368,8 @@ int handle_includes_and_defines(FILE* fr, FILE* fw)
         if (c == EOF) {
             return 0;
         } else if (c == '#' || isspace(c)) {
-            ungetc(c, fr);               // go back
-            fgets(buf, MAX_LINE, fr);    // read
+            ungetc(c, fr);                  // go back
+            fgets(buf, MAX_LINE, fr);  // read
             fputs(buf, fw);              // write
         } else {
             return 1;
@@ -366,7 +377,11 @@ int handle_includes_and_defines(FILE* fr, FILE* fw)
     }
 }
 
-// skips lines that start with #include 
+/**
+ * Skips #include and #define lines
+ * If #define is in the middle of the source code - rip
+ * 1 if ok; 0 if not ok
+ */
 int skip_to_code(FILE* f)
 {
     while (1) {
@@ -382,6 +397,9 @@ int skip_to_code(FILE* f)
     }
 }
 
+/**
+ * Reads from the map and writes #define key value to output header file
+ */
 void add_defines(FILE *f, hashmap *map)
 {
     for (int i = 0; i < map->table_size; i++) {
@@ -393,6 +411,9 @@ void add_defines(FILE *f, hashmap *map)
     }
 }
 
+/**
+ * Like printf but prints only if \a DEBUG_INFO is set to >0
+ */
 void debug_info(const char *format, ...)
 {
     if (!DEBUG_INFO) return;
@@ -402,3 +423,4 @@ void debug_info(const char *format, ...)
     vfprintf(stdout, format, arg);
     va_end(arg);
 }
+

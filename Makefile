@@ -14,12 +14,17 @@ $(BUILD_DIR)/$(TARGET): $(SRCS)
 	@$(CC) $(SRCS) -o $(BUILD_DIR)/$(TARGET)
 
 test: all
-	$(BUILD_DIR)/$(TARGET) tests/file.c
+	$(BUILD_DIR)/$(TARGET) ./examples/yeet_generator.c
+	@printf "\nout.h:\n\n"
+	@cat out.h
+	@printf "\nout.c:\n\n"
+	@cat out.c
 	@echo
-	gcc out.c
-	@echo ./a.out
+	gcc out.c -o out
+	@echo ./out
 	@echo
-	@./a.out
+	@./out | column
 
 clean:
-	@trash out.c out.h a.out
+	@rm out.c out.h out
+

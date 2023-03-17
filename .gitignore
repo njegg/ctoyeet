@@ -2,10 +2,6 @@
 .idea
 
 build
-TODO*
 test*
-src/.*
-yeet
 out.*
 a.out
-*old
