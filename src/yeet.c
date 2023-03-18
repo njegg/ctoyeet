@@ -60,7 +60,7 @@ int main(int argc, char **args)
         return EXIT_SUCCESS;
     }
 
-    char *write_file   = argc > 2 ? args[2] : "out.c";
+    char *write_file = argc > 2 ? args[2] : "out.c";
     size_t write_file_len = strlen(write_file);
 
     if (write_file_len < 3 || write_file[write_file_len - 1] != 'c') {

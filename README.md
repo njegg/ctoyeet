@@ -1,9 +1,7 @@
 # ctoyeet
-### C obfuscator program made as a joke that converts C syntax to 'yeet looking' syntax
----
+### C obfuscator made as a joke that converts a C syntax to 'yeet' looking syntax
 
 It can convert itself!
-TODO: Link
 
 ```
 $ gcc yeet.c -o out # compile original
@@ -70,7 +68,7 @@ yeEt
     Yeet YeeET yeeT yEeET YEeET yeEET YeEET 
 
     yEEt yEEET 
-    YEEET yeeeeT YeeeeT yeeT yEeeeT YeeeeT   yEeeT   YEeeeT  yeEeeT  yeEt   
+    YEEET yeeeeT YeeeeT yeeT yEeeeT YeeeeT yEeeT YEeeeT yeEeeT yeEt   
         YeEeeT yeeT yEEeeT YEEeeT yeeEeT yeeeT YeeEeT yEeEeT YEeEeT yeEt 
             yeEEeT yeeT YeEeeT YeEEeT yEEEeT YEEEeT yeeeET 
         yeeET YeeeET yeeeT YeeEeT yEeEeT yEeT yEeeET YEeeET yeEt 
