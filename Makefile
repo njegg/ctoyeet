@@ -14,7 +14,7 @@ $(BUILD_DIR)/$(TARGET): $(SRCS)
 	@$(CC) $(SRCS) -o $(BUILD_DIR)/$(TARGET)
 
 test: all
-	$(BUILD_DIR)/$(TARGET) ./examples/yeet_generator.c
+	$(BUILD_DIR)/$(TARGET) ./examples/test/yeet_generator.c
 	@printf "\nout.h:\n\n"
 	@cat out.h
 	@printf "\nout.c:\n\n"

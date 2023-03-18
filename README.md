@@ -1,16 +1,22 @@
-## ctoyeet
-### [WIP] C program that converts C syntax to 'yeet looking' syntax
+# ctoyeet
+### C obfuscator program made as a joke that converts C syntax to 'yeet looking' syntax
 ---
 
-## What breaks it
-- using multiple files and headers
-- writing stuff above `#define`s
-- `' '*2;`
-- many more!
+It can convert itself!
+TODO: Link
 
-but,
+```
+$ gcc yeet.c -o out # compile original
+$ ./out yeet.c      # convert
+$ gcc out.c         # compile yeeted source
+$ ./a.out yeet.c    # use that to convert the original
+$ ...               # and so on
+```
 
-[**Can convert itself**](https://github.com/njegg/ctoyeet/blob/main/src_but_yeeted/combined_files_yeeted.c) and still work
+Has some limits:
+- Works only on single files for now
+- #defines in the middle of the code break it
+- probably bunch of other things
 
 ## Features
 
@@ -53,30 +59,30 @@ To this:
 Yeet  yEet  YEet 
 yeEt 
     YeEt 
-    yEEt  YEEt  yeeT  YeeT 
-    yEEt   yEeT  yeeT   YEeT 
-    yeET  YeET  yEET  YEET  yeEt  
-        yeeeT  YeeeT  yEeeT  YEeeT  yeEeT 
-        YEEt   YeEeT  yEEeT 
+    yEEt YEEt yeeT YeeT 
+    yEEt yEeT yeeT YEeT 
+    yeET YeET yEET YEET yeEt  
+        yeeeT YeeeT yEeeT YEeeT yeEeT 
+        YEEt YeEeT yEEeT 
         YEEeT 
     yeeET 
     
-    Yeet   YeeET  yeeT    yEeET  YEeET  yeEET  YeEET 
+    Yeet YeeET yeeT yEeET YEeET yeEET YeEET 
 
-    yEEt    yEEET 
-    YEEET  yeeeeT  YeeeeT  yeeT     yEeeeT  YeeeeT   yEeeT   YEeeeT  yeEeeT  yeEt   
-        YeEeeT  yeeT      yEEeeT  YEEeeT  yeeEeT          yeeeT   YeeEeT  yEeEeT  YEeEeT  yeEt    
-            yeEEeT  yeeT       YeEeeT   YeEEeT  yEEEeT  YEEEeT  yeeeET 
-        yeeET   YeeeET  yeeeT    YeeEeT   yEeEeT   yEeT   yEeeET  YEeeET  yeEt     
-            yeEEeT   yeeT        YeEeeT    YeEEeT   yeEeET  YEEEeT   YeEeET 
-        yeeET    YeeeET   yeEt      
-            yeEEeT    yeeT         YeEeeT     YeEEeT    yEEeET  YEEEeT    YEEeET 
+    yEEt yEEET 
+    YEEET yeeeeT YeeeeT yeeT yEeeeT YeeeeT   yEeeT   YEeeeT  yeEeeT  yeEt   
+        YeEeeT yeeT yEEeeT YEEeeT yeeEeT yeeeT YeeEeT yEeEeT YEeEeT yeEt 
+            yeEEeT yeeT YeEeeT YeEEeT yEEEeT YEEEeT yeeeET 
+        yeeET YeeeET yeeeT YeeEeT yEeEeT yEeT yEeeET YEeeET yeEt 
+            yeEEeT yeeT YeEeeT YeEEeT yeEeET YEEEeT YeEeET 
+        yeeET YeeeET yeEt 
+            yeEEeT yeeT YeEeeT YeEEeT yEEeET YEEEeT YEEeET 
         yeeET    
 
-        yEEeeT   yeeEET  yEEeT  
+        yEEeeT yeeEET yEEeT  
     yeeET     
 
-    YeeEET  yEeEET 
+    YeeEET yEeEET 
 yeeET      
 ```
 
