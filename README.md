@@ -5,6 +5,7 @@
 
 It can
 [convert itself](https://github.com/njegg/ctoyeet/tree/main/examples/convert_itself)!
+(if combined in a single file)
 
 ```
 $ gcc yeet.c -o out # compile original
