@@ -1,7 +1,10 @@
-# ctoyeet
-### C obfuscator made as a joke that converts a C syntax to 'yeet' looking syntax
+## ctoyeet  
 
-It can convert itself!
+> **C obfuscator made as a joke that converts a C syntax to 'yeet' looking syntax**
+
+
+It can
+[convert itself](https://github.com/njegg/ctoyeet/tree/main/examples/convert_itself)!
 
 ```
 $ gcc yeet.c -o out # compile original
